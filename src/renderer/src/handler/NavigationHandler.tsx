@@ -1,13 +1,12 @@
-import { useAppSelector } from '@renderer/store'
+import { ShortcutService } from '@renderer/services/ShortcutService'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const NavigationHandler: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const showSettingsShortcutEnabled = useAppSelector(
-    (state) => state.shortcuts.shortcuts.find((s) => s.key === 'show_settings')?.enabled
-  )
+  const showSettingsShortcut = ShortcutService.getShortcut('show_settings')
+  const showSettingsShortcutEnabled = showSettingsShortcut?.enabled ?? true
 
   useHotkeys(
     'meta+, ! ctrl+,',

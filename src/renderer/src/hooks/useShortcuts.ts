@@ -1,15 +1,9 @@
-import { isMac, isWin } from '@renderer/config/constant'
+import type { UseShortcutOptions } from '@renderer/services/ShortcutService'
+import { ShortcutService } from '@renderer/services/ShortcutService'
 import { useAppSelector } from '@renderer/store'
-import { orderBy } from 'lodash'
 import { useCallback } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
-
-interface UseShortcutOptions {
-  preventDefault?: boolean
-  enableOnFormTags?: boolean
-  enabled?: boolean
-  description?: string
-}
+import { ValidShortcutNames } from '@shared/config/shortcuts'
 
 const defaultOptions: UseShortcutOptions = {
   preventDefault: true,
@@ -17,33 +11,22 @@ const defaultOptions: UseShortcutOptions = {
   enabled: true
 }
 
+/**
+ * Register a shortcut with callback
+ * @param shortcutKey - Shortcut key identifier
+ * @param callback - Callback function to execute when shortcut is triggered
+ * @param options - Shortcut configuration options
+ */
 export const useShortcut = (
-  shortcutKey: string,
+  shortcutKey: ValidShortcutNames,
   callback: (e: KeyboardEvent) => void,
   options: UseShortcutOptions = defaultOptions
 ) => {
-  const shortcuts = useAppSelector((state) => state.shortcuts.shortcuts)
+  const { hotkey, options: hotkeyOptions } = ShortcutService.getHotkeyConfig(shortcutKey, options)
 
-  const formatShortcut = useCallback((shortcut: string[]) => {
-    return shortcut
-      .map((key) => {
-        switch (key.toLowerCase()) {
-          case 'command':
-            return 'meta'
-          case 'commandorcontrol':
-            return isMac ? 'meta' : 'ctrl'
-          default:
-            return key.toLowerCase()
-        }
-      })
-      .join('+')
-  }, [])
-
-  const shortcutConfig = shortcuts.find((s) => s.key === shortcutKey)
-
-  useHotkeys(
-    shortcutConfig?.enabled ? formatShortcut(shortcutConfig.shortcut) : 'none',
-    (e) => {
+  // Memoize the callback to prevent unnecessary re-registrations
+  const memoizedCallback = useCallback(
+    (e: KeyboardEvent) => {
       if (options.preventDefault) {
         e.preventDefault()
       }
@@ -51,43 +34,34 @@ export const useShortcut = (
         callback(e)
       }
     },
-    {
-      enableOnFormTags: options.enableOnFormTags,
-      description: options.description || shortcutConfig?.key,
-      enabled: !!shortcutConfig?.enabled
-    }
+    [callback, options.preventDefault, options.enabled]
   )
+
+  useHotkeys(hotkey, memoizedCallback, hotkeyOptions)
 }
 
+/**
+ * Get all shortcuts with reactive updates
+ * @returns Object containing shortcuts array
+ */
 export function useShortcuts() {
-  const shortcuts = useAppSelector((state) => state.shortcuts.shortcuts)
-  return { shortcuts: orderBy(shortcuts, 'system', 'desc') }
+  // Keep Redux subscription to ensure component re-renders on shortcut changes
+  useAppSelector((state) => state.shortcuts.userShortcuts)
+
+  return { shortcuts: ShortcutService.getAllShortcuts() }
 }
 
-export function useShortcutDisplay(key: string) {
-  const formatShortcut = useCallback((shortcut: string[]) => {
-    return shortcut
-      .map((key) => {
-        switch (key.toLowerCase()) {
-          case 'control':
-            return isMac ? '⌃' : 'Ctrl'
-          case 'ctrl':
-            return isMac ? '⌃' : 'Ctrl'
-          case 'command':
-            return isMac ? '⌘' : isWin ? 'Win' : 'Super'
-          case 'alt':
-            return isMac ? '⌥' : 'Alt'
-          case 'shift':
-            return isMac ? '⇧' : 'Shift'
-          case 'commandorcontrol':
-            return isMac ? '⌘' : 'Ctrl'
-          default:
-            return key.charAt(0).toUpperCase() + key.slice(1).toLowerCase()
-        }
-      })
-      .join('+')
-  }, [])
-  const shortcuts = useAppSelector((state) => state.shortcuts.shortcuts)
-  const shortcutConfig = shortcuts.find((s) => s.key === key)
-  return shortcutConfig?.enabled ? formatShortcut(shortcutConfig.shortcut) : ''
+/**
+ * Get shortcut display text with reactive updates
+ * @param key - Shortcut key identifier
+ * @returns Formatted shortcut display text
+ */
+export function useShortcutDisplay(key: ValidShortcutNames) {
+  // Keep Redux subscription to ensure component re-renders on shortcut changes
+  useAppSelector((state) => state.shortcuts.userShortcuts)
+
+  return ShortcutService.getShortcutDisplayText(key)
 }
+
+// Export types for backward compatibility
+export type { UseShortcutOptions }

@@ -1,125 +1,23 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { Shortcut } from '@renderer/types'
-import { ZOOM_SHORTCUTS } from '@shared/config/constant'
+import { UserShortcutState } from '@renderer/types'
 
 export interface ShortcutsState {
-  shortcuts: Shortcut[]
+  userShortcuts: UserShortcutState[]
 }
 
 const initialState: ShortcutsState = {
-  shortcuts: [
-    ...ZOOM_SHORTCUTS,
-    {
-      key: 'show_settings',
-      shortcut: ['CommandOrControl', ','],
-      editable: false,
-      enabled: true,
-      system: true
-    },
-    {
-      key: 'show_app',
-      shortcut: [],
-      editable: true,
-      enabled: true,
-      system: true
-    },
-    {
-      key: 'mini_window',
-      shortcut: ['CommandOrControl', 'E'],
-      editable: true,
-      enabled: false,
-      system: true
-    },
-    {
-      //enable/disable selection assistant
-      key: 'selection_assistant_toggle',
-      shortcut: [],
-      editable: true,
-      enabled: false,
-      system: true
-    },
-    {
-      //to select text with selection assistant
-      key: 'selection_assistant_select_text',
-      shortcut: [],
-      editable: true,
-      enabled: false,
-      system: true
-    },
-    {
-      key: 'new_topic',
-      shortcut: ['CommandOrControl', 'N'],
-      editable: true,
-      enabled: true,
-      system: false
-    },
-    {
-      key: 'toggle_show_assistants',
-      shortcut: ['CommandOrControl', '['],
-      editable: true,
-      enabled: true,
-      system: false
-    },
-
-    {
-      key: 'toggle_show_topics',
-      shortcut: ['CommandOrControl', ']'],
-      editable: true,
-      enabled: true,
-      system: false
-    },
-    {
-      key: 'copy_last_message',
-      shortcut: ['CommandOrControl', 'Shift', 'C'],
-      editable: true,
-      enabled: false,
-      system: false
-    },
-    {
-      key: 'search_message_in_chat',
-      shortcut: ['CommandOrControl', 'F'],
-      editable: true,
-      enabled: true,
-      system: false
-    },
-    {
-      key: 'search_message',
-      shortcut: ['CommandOrControl', 'Shift', 'F'],
-      editable: true,
-      enabled: true,
-      system: false
-    },
-    {
-      key: 'clear_topic',
-      shortcut: ['CommandOrControl', 'L'],
-      editable: true,
-      enabled: true,
-      system: false
-    },
-    {
-      key: 'toggle_new_context',
-      shortcut: ['CommandOrControl', 'K'],
-      editable: true,
-      enabled: true,
-      system: false
-    },
-    {
-      key: 'exit_fullscreen',
-      shortcut: ['Escape'],
-      editable: false,
-      enabled: true,
-      system: true
-    }
-  ]
+  // Initially empty - user shortcuts will be populated from static definitions + user preferences
+  userShortcuts: []
 }
 
-const getSerializableShortcuts = (shortcuts: Shortcut[]) => {
-  return shortcuts.map((shortcut) => ({
-    key: shortcut.key,
-    shortcut: [...shortcut.shortcut],
+const getSerializableUserShortcuts = (userShortcuts: UserShortcutState[]) => {
+  return userShortcuts.map((shortcut) => ({
+    name: shortcut.name,
+    key: [...shortcut.key],
     enabled: shortcut.enabled,
-    system: shortcut.system,
-    editable: shortcut.editable
+    // Add legacy fields for backward compatibility with the main process
+    system: false,
+    editable: true
   }))
 }
 
@@ -127,21 +25,46 @@ const shortcutsSlice = createSlice({
   name: 'shortcuts',
   initialState,
   reducers: {
-    updateShortcut: (state, action: PayloadAction<Shortcut>) => {
-      state.shortcuts = state.shortcuts.map((s) => (s.key === action.payload.key ? action.payload : s))
-      window.api.shortcuts.update(getSerializableShortcuts(state.shortcuts))
+    setUserShortcuts: (state, action: PayloadAction<UserShortcutState[]>) => {
+      state.userShortcuts = action.payload
+      window.api.shortcuts.update(getSerializableUserShortcuts(state.userShortcuts))
     },
-    toggleShortcut: (state, action: PayloadAction<string>) => {
-      state.shortcuts = state.shortcuts.map((s) => (s.key === action.payload ? { ...s, enabled: !s.enabled } : s))
-      window.api.shortcuts.update(getSerializableShortcuts(state.shortcuts))
+    updateUserShortcut: (state, action: PayloadAction<UserShortcutState>) => {
+      const existingIndex = state.userShortcuts.findIndex((s) => s.name === action.payload.name)
+      if (existingIndex >= 0) {
+        state.userShortcuts[existingIndex] = action.payload
+      } else {
+        state.userShortcuts.push(action.payload)
+      }
+      window.api.shortcuts.update(getSerializableUserShortcuts(state.userShortcuts))
     },
-    resetShortcuts: (state) => {
-      state.shortcuts = initialState.shortcuts
-      window.api.shortcuts.update(getSerializableShortcuts(state.shortcuts))
+    toggleUserShortcut: (state, action: PayloadAction<string>) => {
+      const existingIndex = state.userShortcuts.findIndex((s) => s.name === action.payload)
+      if (existingIndex >= 0) {
+        state.userShortcuts[existingIndex].enabled = !state.userShortcuts[existingIndex].enabled
+      } else {
+        // If user shortcut doesn't exist, create one with enabled: false
+        state.userShortcuts.push({
+          name: action.payload,
+          key: [],
+          enabled: false
+        })
+      }
+      window.api.shortcuts.update(getSerializableUserShortcuts(state.userShortcuts))
+    },
+    resetUserShortcuts: (state) => {
+      state.userShortcuts = []
+      window.api.shortcuts.update(getSerializableUserShortcuts(state.userShortcuts))
     }
   }
 })
 
-export const { updateShortcut, toggleShortcut, resetShortcuts } = shortcutsSlice.actions
+export const { setUserShortcuts, updateUserShortcut, toggleUserShortcut, resetUserShortcuts } = shortcutsSlice.actions
+
+// Legacy exports for backward compatibility
+export const updateShortcut = updateUserShortcut
+export const toggleShortcut = toggleUserShortcut
+export const resetShortcuts = resetUserShortcuts
+
 export default shortcutsSlice.reducer
 export { initialState }

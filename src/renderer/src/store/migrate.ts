@@ -1,6 +1,6 @@
 import { loggerService } from '@logger'
 import { nanoid } from '@reduxjs/toolkit'
-import { DEFAULT_CONTEXTCOUNT, DEFAULT_TEMPERATURE, isMac } from '@renderer/config/constant'
+import { DEFAULT_CONTEXTCOUNT, DEFAULT_TEMPERATURE } from '@renderer/config/constant'
 import { DEFAULT_MIN_APPS } from '@renderer/config/minapps'
 import {
   glm45FlashModel,
@@ -43,7 +43,6 @@ import { mcpSlice } from './mcp'
 import { initialState as notesInitialState } from './note'
 import { defaultActionItems } from './selectionStore'
 import { initialState as settingsInitialState } from './settings'
-import { initialState as shortcutsInitialState } from './shortcuts'
 import { defaultWebSearchProviders } from './websearch'
 
 const logger = loggerService.withContext('Migrate')
@@ -133,48 +132,6 @@ function addSelectionAction(state: RootState, id: string) {
       if (action) {
         state.selectionStore.actionItems.push(action)
       }
-    }
-  }
-}
-
-/**
- * Add shortcuts(ids from shortcutsInitialState) after the shortcut(afterId)
- * if afterId is 'first', add to the first
- * if afterId is 'last', add to the last
- */
-function addShortcuts(state: RootState, ids: string[], afterId: string) {
-  const defaultShortcuts = shortcutsInitialState.shortcuts
-
-  // 确保 state.shortcuts 存在
-  if (!state.shortcuts) {
-    return
-  }
-
-  // 从 defaultShortcuts 中找到要添加的快捷键
-  const shortcutsToAdd = defaultShortcuts.filter((shortcut) => ids.includes(shortcut.key))
-
-  // 过滤掉已经存在的快捷键
-  const existingKeys = state.shortcuts.shortcuts.map((s) => s.key)
-  const newShortcuts = shortcutsToAdd.filter((shortcut) => !existingKeys.includes(shortcut.key))
-
-  if (newShortcuts.length === 0) {
-    return
-  }
-
-  if (afterId === 'first') {
-    // 添加到最前面
-    state.shortcuts.shortcuts.unshift(...newShortcuts)
-  } else if (afterId === 'last') {
-    // 添加到最后面
-    state.shortcuts.shortcuts.push(...newShortcuts)
-  } else {
-    // 添加到指定快捷键后面
-    const afterIndex = state.shortcuts.shortcuts.findIndex((shortcut) => shortcut.key === afterId)
-    if (afterIndex !== -1) {
-      state.shortcuts.shortcuts.splice(afterIndex + 1, 0, ...newShortcuts)
-    } else {
-      // 如果找不到指定的快捷键，则添加到最后
-      state.shortcuts.shortcuts.push(...newShortcuts)
     }
   }
 }
@@ -735,25 +692,8 @@ const migrateConfig = {
   },
   '48': (state: RootState) => {
     try {
-      if (state.shortcuts) {
-        state.shortcuts.shortcuts.forEach((shortcut) => {
-          shortcut.system = shortcut.key !== 'new_topic'
-        })
-        state.shortcuts.shortcuts.push({
-          key: 'toggle_show_assistants',
-          shortcut: [isMac ? 'Command' : 'Ctrl', '['],
-          editable: true,
-          enabled: true,
-          system: false
-        })
-        state.shortcuts.shortcuts.push({
-          key: 'toggle_show_topics',
-          shortcut: [isMac ? 'Command' : 'Ctrl', ']'],
-          editable: true,
-          enabled: true,
-          system: false
-        })
-      }
+      // Migration 48: Add toggle shortcuts (deprecated after migration 150)
+      // Shortcuts are now managed by ShortcutService with static configuration
       return state
     } catch (error) {
       return state
@@ -762,18 +702,8 @@ const migrateConfig = {
   '49': (state: RootState) => {
     try {
       state.settings.pasteLongTextThreshold = 1500
-      if (state.shortcuts) {
-        state.shortcuts.shortcuts = [
-          ...state.shortcuts.shortcuts,
-          {
-            key: 'copy_last_message',
-            shortcut: [isMac ? 'Command' : 'Ctrl', 'Shift', 'C'],
-            editable: true,
-            enabled: false,
-            system: false
-          }
-        ]
-      }
+      // Migration 49: Add copy_last_message shortcut (deprecated after migration 150)
+      // Shortcuts are now managed by ShortcutService with static configuration
       return state
     } catch (error) {
       return state
@@ -793,15 +723,8 @@ const migrateConfig = {
   },
   '54': (state: RootState) => {
     try {
-      if (state.shortcuts) {
-        state.shortcuts.shortcuts.push({
-          key: 'search_message',
-          shortcut: [isMac ? 'Command' : 'Ctrl', 'F'],
-          editable: true,
-          enabled: true,
-          system: false
-        })
-      }
+      // Migration 54: Add search_message shortcut (deprecated after migration 150)
+      // Shortcuts are now managed by ShortcutService with static configuration
       state.settings.sidebarIcons = {
         visible: DEFAULT_SIDEBAR_ICONS,
         disabled: []
@@ -826,15 +749,8 @@ const migrateConfig = {
   },
   '57': (state: RootState) => {
     try {
-      if (state.shortcuts) {
-        state.shortcuts.shortcuts.push({
-          key: 'mini_window',
-          shortcut: [isMac ? 'Command' : 'Ctrl', 'E'],
-          editable: true,
-          enabled: false,
-          system: true
-        })
-      }
+      // Migration 57: Add mini_window shortcut (deprecated after migration 150)
+      // Shortcuts are now managed by ShortcutService with static configuration
 
       state.llm.providers.forEach((provider) => {
         if (provider.id === 'qwenlm') {
@@ -853,24 +769,8 @@ const migrateConfig = {
   },
   '58': (state: RootState) => {
     try {
-      if (state.shortcuts) {
-        state.shortcuts.shortcuts.push(
-          {
-            key: 'clear_topic',
-            shortcut: [isMac ? 'Command' : 'Ctrl', 'L'],
-            editable: true,
-            enabled: true,
-            system: false
-          },
-          {
-            key: 'toggle_new_context',
-            shortcut: [isMac ? 'Command' : 'Ctrl', 'R'],
-            editable: true,
-            enabled: true,
-            system: false
-          }
-        )
-      }
+      // Migration 58: Add clear_topic and toggle_new_context shortcuts (deprecated after migration 150)
+      // Shortcuts are now managed by ShortcutService with static configuration
       return state
     } catch (error) {
       return state
@@ -1439,15 +1339,8 @@ const migrateConfig = {
           }
         }
       })
-      if (state.shortcuts) {
-        state.shortcuts.shortcuts.push({
-          key: 'exit_fullscreen',
-          shortcut: ['Escape'],
-          editable: false,
-          enabled: true,
-          system: true
-        })
-      }
+      // Migration 101: Add exit_fullscreen shortcut (deprecated after migration 150)
+      // Shortcuts are now managed by ShortcutService with static configuration
       return state
     } catch (error) {
       logger.error('migrate 101 error', error as Error)
@@ -1507,27 +1400,8 @@ const migrateConfig = {
   },
   '103': (state: RootState) => {
     try {
-      if (state.shortcuts) {
-        if (!state.shortcuts.shortcuts.find((shortcut) => shortcut.key === 'search_message_in_chat')) {
-          state.shortcuts.shortcuts.push({
-            key: 'search_message_in_chat',
-            shortcut: [isMac ? 'Command' : 'Ctrl', 'F'],
-            editable: true,
-            enabled: true,
-            system: false
-          })
-        }
-        const searchMessageShortcut = state.shortcuts.shortcuts.find((shortcut) => shortcut.key === 'search_message')
-        const targetShortcut = [isMac ? 'Command' : 'Ctrl', 'F']
-        if (
-          searchMessageShortcut &&
-          Array.isArray(searchMessageShortcut.shortcut) &&
-          searchMessageShortcut.shortcut.length === targetShortcut.length &&
-          searchMessageShortcut.shortcut.every((v, i) => v === targetShortcut[i])
-        ) {
-          searchMessageShortcut.shortcut = [isMac ? 'Command' : 'Ctrl', 'Shift', 'F']
-        }
-      }
+      // Migration 103: Add search_message_in_chat shortcut and update search_message (deprecated after migration 150)
+      // Shortcuts are now managed by ShortcutService with static configuration
       return state
     } catch (error) {
       logger.error('migrate 103 error', error as Error)
@@ -1623,8 +1497,8 @@ const migrateConfig = {
         state.llm.translateModel = SYSTEM_MODELS.defaultModel[2]
       }
 
-      // add selection_assistant_toggle and selection_assistant_select_text shortcuts after mini_window
-      addShortcuts(state, ['selection_assistant_toggle', 'selection_assistant_select_text'], 'mini_window')
+      // Migration 111: Add selection assistant shortcuts (deprecated after migration 150)
+      // Shortcuts are now managed by ShortcutService with static configuration
 
       return state
     } catch (error) {
@@ -2402,6 +2276,46 @@ const migrateConfig = {
       return state
     } catch (error) {
       logger.error('migrate 149 error', error as Error)
+      return state
+    }
+  },
+  '150': (state: RootState) => {
+    try {
+      // Migrate shortcuts structure from full objects to user state only
+      if (state.shortcuts && (state.shortcuts as any).shortcuts) {
+        const userShortcuts: any[] = []
+
+        // Extract user-modifiable data from existing shortcuts
+        ;(state.shortcuts as any).shortcuts.forEach((shortcut: any) => {
+          // Create user state for any shortcut that:
+          // 1. Has been disabled (enabled: false)
+          // 2. Has custom keys (differs from default)
+          // 3. Has been explicitly enabled (to preserve user intent)
+
+          const hasCustomKeys = shortcut.shortcut && shortcut.shortcut.length > 0
+          const isDisabled = shortcut.enabled === false
+          const isExplicitlyEnabled = shortcut.enabled === true
+
+          // Always create user state for disabled shortcuts or custom shortcuts
+          // Also create for explicitly enabled shortcuts to preserve user choices
+          if (isDisabled || hasCustomKeys || isExplicitlyEnabled) {
+            userShortcuts.push({
+              name: shortcut.key,
+              key: shortcut.shortcut || [],
+              enabled: shortcut.enabled !== false
+            })
+          }
+        })
+
+        // Replace old structure with new user shortcuts structure
+        state.shortcuts = {
+          userShortcuts: userShortcuts
+        } as any
+      }
+
+      return state
+    } catch (error) {
+      logger.error('migrate 150 error', error as Error)
       return state
     }
   }

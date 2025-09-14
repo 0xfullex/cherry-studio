@@ -584,13 +584,26 @@ export type AppInfo = {
   installPath: string
 }
 
-export interface Shortcut {
-  key: string
-  shortcut: string[]
-  editable: boolean
-  enabled: boolean
-  system: boolean
-}
+// /**
+//  * User shortcut state - only contains user-modifiable data
+//  * Stored in Redux store
+//  */
+// export interface UserShortcutState {
+//   name: string
+//   key: string[]
+//   enabled: boolean
+// }
+
+// /**
+//  * Complete shortcut information - combines static definition with user state
+//  * Used by components and services
+//  */
+// export interface Shortcut {
+//   name: string
+//   key: string[]
+//   enabled: boolean
+//   editable: boolean
+// }
 
 export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed'
 

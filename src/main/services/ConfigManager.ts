@@ -1,5 +1,6 @@
-import { defaultLanguage, UpgradeChannel, ZOOM_SHORTCUTS } from '@shared/config/constant'
-import { LanguageVarious, Shortcut, ThemeMode } from '@types'
+import { defaultLanguage, UpgradeChannel } from '@shared/config/constant'
+import { defaultShortcutConfigs, type UserShortcutType } from '@shared/config/shortcuts'
+import { LanguageVarious, ThemeMode } from '@types'
 import { app } from 'electron'
 import Store from 'electron-store'
 
@@ -112,14 +113,22 @@ export class ConfigManager {
   }
 
   getShortcuts() {
-    return this.get(ConfigKeys.Shortcuts, ZOOM_SHORTCUTS) as Shortcut[] | []
+    // Create default zoom shortcuts from the new shortcut system
+    const defaultZoomShortcuts = ['zoom_in', 'zoom_out', 'zoom_reset'].map((shortcutName) => {
+      const definition = defaultShortcutConfigs[shortcutName as keyof typeof defaultShortcutConfigs]
+      return {
+        name: shortcutName,
+        key: definition.key,
+        editable: definition.editable,
+        enabled: true
+      }
+    })
+
+    return this.get(ConfigKeys.Shortcuts, defaultZoomShortcuts) as UserShortcutType[] | []
   }
 
   setShortcuts(shortcuts: Shortcut[]) {
-    this.setAndNotify(
-      ConfigKeys.Shortcuts,
-      shortcuts.filter((shortcut) => shortcut.system)
-    )
+    this.setAndNotify(ConfigKeys.Shortcuts, shortcuts)
   }
 
   getClickTrayToShowQuickAssistant(): boolean {

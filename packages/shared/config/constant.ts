@@ -163,30 +163,6 @@ export const ZOOM_OPTIONS = ZOOM_LEVELS.map((level) => ({
   label: `${Math.round(level * 100)}%`
 }))
 
-export const ZOOM_SHORTCUTS = [
-  {
-    key: 'zoom_in',
-    shortcut: ['CommandOrControl', '='],
-    editable: false,
-    enabled: true,
-    system: true
-  },
-  {
-    key: 'zoom_out',
-    shortcut: ['CommandOrControl', '-'],
-    editable: false,
-    enabled: true,
-    system: true
-  },
-  {
-    key: 'zoom_reset',
-    shortcut: ['CommandOrControl', '0'],
-    editable: false,
-    enabled: true,
-    system: true
-  }
-]
-
 export const KB = 1024
 export const MB = 1024 * KB
 export const GB = 1024 * MB
